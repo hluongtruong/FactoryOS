@@ -211,6 +211,16 @@ function validateMaxLength(value, length, fieldName) {
 }
 
 /**
+ * Validates raw Project input using the established Project validator.
+ *
+ * @param {Object} projectInput Project input to validate.
+ * @return {{valid: boolean, errors: Array<string>}} Validation result.
+ */
+function validateProjectInput(projectInput) {
+  return validateProject(projectInput);
+}
+
+/**
  * Validates the required fields of a project object defined by PR-03.
  *
  * @param {Object} data Project data to validate.
