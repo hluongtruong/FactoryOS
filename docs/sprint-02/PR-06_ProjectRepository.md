@@ -158,7 +158,7 @@ insert(project)
 
 update(project)
 
-delete(projectId)
+deleteProject(projectId)
 
 exists(projectId)
 
