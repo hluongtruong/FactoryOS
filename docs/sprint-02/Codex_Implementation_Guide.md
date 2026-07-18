@@ -499,3 +499,5 @@ Dừng.
 Báo cáo.
 
 Chờ Review trước khi triển khai module tiếp theo.
+
+Mọi Repository phải tuân thủ ADR-004_DatabaseSchema.md. Khi có mâu thuẫn giữa PR và Schema, ADR-004 được ưu tiên cho Database Contract.
