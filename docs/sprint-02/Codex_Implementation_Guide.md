@@ -3,13 +3,13 @@
 
 ---
 
-## Document Information
+# Document Information
 
 | Item | Value |
 |------|-------|
 | Document | Codex Implementation Guide |
-| Sprint | Sprint 2 |
-| Version | v1.0 |
+| Sprint | Sprint-02 |
+| Version | v2.0 |
 | Status | APPROVED |
 | Author | Software Architect |
 | Project | FactoryOS |
@@ -20,42 +20,58 @@
 
 Bạn là **Senior Google Apps Script Engineer**.
 
-Nhiệm vụ của bạn là triển khai **Sprint 2 – New Project Module** của FactoryOS.
+Nhiệm vụ của bạn là triển khai đúng các PR của **Sprint-02 – New Project Module**.
 
 Bạn KHÔNG phải Software Architect.
 
-Bạn KHÔNG được thay đổi thiết kế.
+Bạn KHÔNG được thay đổi:
 
-Bạn KHÔNG được thay đổi Database.
+- Architecture
+- Database Schema
+- Business Flow
+- ADR
+- SRS
+- TDS
 
 Bạn chỉ được triển khai đúng theo tài liệu.
+
+Nếu phát hiện tài liệu thiếu hoặc mâu thuẫn, phải dừng và báo cáo.
 
 ---
 
 # 2. Required Documents
 
-Đọc theo đúng thứ tự sau.
+Trước khi lập trình, bắt buộc đọc theo đúng thứ tự sau:
 
-1.
-README.md
+1. README.md
 
-2.
-ADR-003_Database_Frozen.md
+2. ROADMAP.md
 
-3.
-SRS_Sprint02_NewProject.md
+3. ADR-003_Database_Frozen.md
 
-4.
-TDS_Sprint02_NewProject.md
+4. ADR-004_DatabaseSchema.md
 
-5.
-Codex_Implementation_Guide.md
+5. ADR-005_ServiceArchitecture.md
+
+6. ADR-006_GoogleAppsScriptConvention.md
+
+7. SRS_Sprint02_NewProject.md
+
+8. TDS_Sprint02_NewProject.md
+
+9. Codex_Implementation_Guide.md
+
+10. PR Specification tương ứng
+
+Không được bỏ qua bất kỳ tài liệu nào.
 
 ---
 
+# 3. Priority Rules
+
 Nếu phát hiện mâu thuẫn.
 
-Ưu tiên:
+Ưu tiên theo thứ tự:
 
 ADR
 
@@ -69,28 +85,34 @@ TDS
 
 ↓
 
-Guide
+PR Specification
 
 ↓
 
-Code
+Codex Guide
 
-Không được tự ý quyết định.
+↓
 
-Hãy dừng lại và hỏi.
+Implementation
+
+Không được tự quyết định.
+
+Không được tự sửa tài liệu.
+
+Phải dừng và báo cáo.
 
 ---
 
-# 3. Sprint Scope
+# 4. Sprint Scope
 
 Được phép phát triển:
 
-- New Project Form
+- New Project
 - Validation
-- Project ID Generation
-- Google Drive Folder Creation
-- PROJECT Database Insert
-- SETTINGS Update
+- ID Generation
+- Google Drive
+- Repository
+- Business Service
 
 Không được phát triển:
 
@@ -100,107 +122,68 @@ Không được phát triển:
 - Dashboard
 - AI
 - Login
-- Permission
 - Notification
+- Permission
 
 ---
 
-# 4. Database Contract
+# 5. Database Contract
 
-Không được thay đổi.
-
-Tên Sheet:
-
-- PROJECT
-- TASK
-- INBOX
-- KNOWLEDGE
-- SETTINGS
+Database được đóng băng theo ADR-003 và ADR-004.
 
 Không được:
 
-- Đổi tên Sheet
-- Đổi tên cột
-- Thêm cột
-- Xóa cột
+- đổi tên Sheet
+- đổi tên cột
+- thêm cột
+- xóa cột
+- hard-code header
 
-Mọi thay đổi Database phải có ADR mới.
+Repository phải đọc:
+
+CONFIG.SHEETS
+
+CONFIG.PROJECT_COLUMNS
+
+Không module nào khác được truy cập Spreadsheet.
 
 ---
 
-# 5. Configuration Rules
+# 6. Configuration Rules
 
 Không được Hardcode:
 
 - Sheet Name
+- Column Name
 - Folder ID
-- Project Prefix
+- Prefix
 - Status
 - Priority
 - TimeZone
 
-Toàn bộ phải đọc từ Sheet SETTINGS.
+Toàn bộ phải lấy từ:
 
----
+Config.gs
 
-# 6. Project ID Rules
+và
 
-Định dạng:
-
-PRJ-YYYY-NNN
-
-Ví dụ:
-
-PRJ-2026-001
-
-Quy trình:
-
-1.
-Đọc PROJECT_PREFIX
-
-2.
-Đọc PROJECT_CURRENT_YEAR
-
-3.
-Đọc CURRENT_PROJECT_NO
-
-4.
-Lấy năm hiện tại
-
-5.
-Nếu năm hiện tại khác PROJECT_CURRENT_YEAR
-
-- cập nhật PROJECT_CURRENT_YEAR
-- CURRENT_PROJECT_NO = 1
-
-6.
-Nếu cùng năm
-
-CURRENT_PROJECT_NO++
-
-7.
-Padding 3 chữ số
-
-8.
-Sinh Project ID
-
-Không được tự thay đổi thuật toán.
+SETTINGS Sheet
 
 ---
 
 # 7. Processing Flow
 
-Bắt buộc theo đúng thứ tự.
+Business Flow bắt buộc.
 
 Validation
 
 ↓
 
-Generate Project ID
+Generate ID
 
 ↓
 
-Create Google Drive Folder
+Create Folder
 
 ↓
 
@@ -208,13 +191,13 @@ Insert PROJECT
 
 ↓
 
-Update SETTINGS
-
-↓
-
 Return Result
 
-Không thay đổi thứ tự.
+Không được thay đổi thứ tự.
+
+Không được thêm bước khác.
+
+Rollback theo ADR-005.
 
 ---
 
@@ -242,23 +225,21 @@ Nếu Insert PROJECT lỗi
 
 ↓
 
-Dừng.
-
-Không Update SETTINGS.
-
-Nếu Update SETTINGS lỗi
+Rollback Folder
 
 ↓
 
-Trả lỗi.
+Throw Exception
 
-Không được báo thành công.
+Không rollback ID.
+
+Không retry.
 
 ---
 
 # 9. Folder Rules
 
-Folder Name
+Tên Folder
 
 <ProjectID>_<ProjectName>
 
@@ -266,74 +247,277 @@ Ví dụ
 
 PRJ-2026-001_SkillMap
 
-Folder phải được tạo từ
+DriveService chịu trách nhiệm:
 
-TEMPLATE_FOLDER_ID
+- Create Folder
+- Copy Template
+- Rename Folder
+- Rollback Folder
 
-Folder phải nằm trong
-
-DRIVE_ROOT_FOLDER_ID
+Không module nào khác được sử dụng DriveApp.
 
 ---
 
 # 10. Coding Architecture
 
-Bắt buộc chia Module.
+FactoryOS sử dụng Clean Architecture.
 
-Ví dụ:
+UI
 
-Code.gs
+↓
 
-Config.gs
+Service
 
-SettingsService.gs
+↓
 
-ValidationService.gs
+Repository
 
-IdService.gs
+↓
 
-DriveService.gs
+Google APIs
 
-ProjectRepository.gs
+Google APIs chỉ được phép sử dụng trong đúng layer quy định.
 
-ProjectService.gs
+Không viết toàn bộ code trong Code.gs.
 
-Utils.gs
+Mỗi module phải có trách nhiệm duy nhất (Single Responsibility Principle).
+# 11. PR Implementation Order
 
-Index.html
+FactoryOS phải được triển khai đúng theo thứ tự dependency.
 
-ProjectForm.html
+PR-01
 
-Style.html
+↓
 
-Script.html
+PR-02
 
-Không được viết toàn bộ code trong Code.gs.
+↓
+
+PR-03
+
+↓
+
+PR-03A
+
+↓
+
+PR-04
+
+↓
+
+PR-04A
+
+↓
+
+PR-05
+
+↓
+
+PR-05A
+
+↓
+
+PR-06
+
+↓
+
+PR-07
+
+↓
+
+PR-08
+
+↓
+
+PR-09
+
+Không được bỏ qua dependency.
+
+Không được triển khai PR khi dependency chưa hoàn thành.
+
+Nếu dependency chưa hoàn thành.
+
+Phải dừng.
+
+Báo cáo.
 
 ---
 
-# 11. Coding Principles
+# 12. Service Layer Rules
 
-Áp dụng:
+Business Logic chỉ được phép tồn tại trong Service.
 
-- Single Responsibility Principle
-- Separation of Concerns
-- DRY
-- KISS
+ProjectService chỉ được gọi:
 
-Không viết Function quá dài.
+- ValidationService
+- IdService
+- DriveService
+- ProjectRepository
 
-Không lặp code.
+ProjectService không được:
 
-Đặt tên rõ ràng.
+- dùng SpreadsheetApp
+- dùng DriveApp
+- đọc SETTINGS
+- ghi PROJECT Sheet
+- tự validate
+- tự sinh ID
+
+Service chỉ làm nhiệm vụ orchestration.
 
 ---
 
-# 12. Error Handling
+# 13. Repository Rules
 
-Không hiển thị Stack Trace cho User.
+Repository chỉ chịu trách nhiệm:
 
-API Response phải thống nhất.
+- CRUD
+- Object Mapping
+- Header Mapping
+- Search
+- Filter
+
+Repository không được:
+
+- Validation
+- Business Logic
+- Generate ID
+- Create Folder
+- HTML
+- Logger UI
+
+SpreadsheetApp chỉ được sử dụng trong Repository.
+
+Không module nào khác được truy cập Spreadsheet trực tiếp.
+
+---
+
+# 14. Drive Rules
+
+DriveApp chỉ được phép sử dụng trong:
+
+DriveService
+
+DriveService chịu trách nhiệm:
+
+- Create Folder
+- Copy Template
+- Rename Folder
+- Delete Folder (Rollback)
+
+Không module nào khác được gọi DriveApp.
+
+---
+
+# 15. Validation Rules
+
+Validation chỉ được thực hiện bởi:
+
+ValidationService
+
+Public API chuẩn:
+
+validateProjectInput()
+
+ProjectService không được validate.
+
+Repository không validate.
+
+UI chỉ kiểm tra định dạng cơ bản.
+
+Business Validation phải nằm trong ValidationService.
+
+---
+
+# 16. ID Generation Rules
+
+ID chỉ được sinh bởi:
+
+IdService
+
+Public API chuẩn:
+
+generateProjectId()
+
+Không module nào khác được sinh Project ID.
+
+Không được hard-code Prefix.
+
+Không được hard-code Year.
+
+Không được sửa thuật toán đánh số.
+
+---
+
+# 17. API Compatibility Rules
+
+Các Public API chuẩn.
+
+ValidationService
+
+- validateProjectInput()
+
+IdService
+
+- generateProjectId()
+
+DriveService
+
+- createProjectFolder()
+- deleteProjectFolder()
+
+ProjectRepository
+
+- findById()
+- findByName()
+- search()
+- insert()
+- update()
+- deleteProject()
+- exists()
+- count()
+
+ProjectService
+
+- createProject()
+- updateProject()
+- removeProject()
+- getProject()
+- searchProjects()
+- projectExists()
+- countProjects()
+
+Không sử dụng:
+
+delete()
+
+Không sử dụng:
+
+deleteProject()
+
+trong Service để tránh xung đột global namespace của Google Apps Script.
+
+---
+
+# 18. Error Handling
+
+Validation Error
+
+VALxxx
+
+Configuration Error
+
+CFG001
+
+Database Error
+
+DB001
+
+Drive Error
+
+DRV001
+
+API Response
 
 Success
 
@@ -342,149 +526,99 @@ Success
     "data": { }
 }
 
-Fail
+Failure
 
 {
     "success": false,
-    "code": "DRV001",
-    "message": "Create Folder Failed"
+    "code": "XXX001",
+    "message": "..."
 }
 
----
+Không swallow exception.
 
-# 13. Logging
-
-Mỗi lần Create Project.
-
-Log:
-
-- Timestamp
-- User
-- ProjectID
-- Result
-- ErrorCode
-
-Không sử dụng Logger.log() làm cơ chế logging chính.
+Không silent fail.
 
 ---
 
-# 14. UI Rules
+# 19. AI Implementation Rules
 
-UI đơn giản.
+Nếu phát hiện:
 
-Không Animation.
+- API không tồn tại
+- Config thiếu
+- Schema thiếu
+- ADR mâu thuẫn
+- PR mâu thuẫn
+- Dependency chưa hoàn thành
 
-Không Framework.
+Không được:
 
-Responsive.
+- tự tạo API
+- tự sửa tài liệu
+- tự sửa Architecture
+- tự sửa Database
+- suy đoán
 
-Button Create bị Disable khi Submit.
+Phải:
 
-Hiển thị Loading.
-
----
-
-# 15. Testing Checklist
-
-Codex phải tự kiểm tra.
-
-□ Create Success
-
-□ Empty Project Name
-
-□ Empty Purpose
-
-□ Empty Owner
-
-□ Invalid Deadline
-
-□ Duplicate Project ID
-
-□ Year Reset
-
-□ Drive Folder Failure
-
-□ PROJECT Insert Failure
-
-□ SETTINGS Update Failure
+- dừng
+- báo cáo chính xác
+- chờ Software Architect quyết định
 
 ---
 
-# 16. Deliverables
+# 20. Definition of Done
 
-Hoàn thành Sprint phải bàn giao.
+Một PR chỉ được xem là hoàn thành khi:
 
-Source Code
+✓ Triển khai đúng tài liệu.
 
-Apps Script Files
+✓ Không vi phạm ADR.
 
-HTML Files
+✓ Không vi phạm Architecture.
 
-CSS Files
+✓ Không Hard-code.
 
-JavaScript Files
+✓ Không có TODO.
 
-Installation Guide
+✓ JavaScript syntax check thành công.
 
-Configuration Guide
+✓ git diff --check thành công.
 
-Testing Result
+✓ Public API đúng Specification.
 
-Known Issues
+✓ Không ảnh hưởng các PR khác.
 
----
+✓ Chỉ sửa đúng file nằm trong phạm vi PR.
 
-# 17. Definition of Done
-
-Sprint 2 được xem là hoàn thành khi.
-
-✓ New Project hoạt động.
-
-✓ Validation hoàn chỉnh.
-
-✓ Project ID đúng định dạng.
-
-✓ Folder được tạo.
-
-✓ PROJECT được ghi.
-
-✓ SETTINGS được cập nhật.
-
-✓ Không có Duplicate ID.
-
-✓ Không có Hardcode.
-
-✓ Pass toàn bộ Test Plan.
-
----
-
-# 18. Restrictions
-
-Codex KHÔNG được.
-
-- Thay đổi Database
-- Thay đổi Architecture
-- Thay đổi Business Logic
-- Thêm chức năng ngoài Sprint
-- Refactor ngoài phạm vi Sprint
-
-Nếu phát hiện thiếu thông tin.
-
-Không suy đoán.
+Sau khi hoàn thành.
 
 Dừng.
 
-Báo cáo.
+Báo cáo:
 
-Chờ Software Architect quyết định.
+- File đã sửa.
+- Public API đã triển khai.
+- Helper private đã thêm.
+- Module đã sử dụng.
+- Kiểm tra syntax.
+- Kiểm tra git diff --check.
+- Xác nhận không ảnh hưởng module khác.
+
+Chờ Review trước khi triển khai PR tiếp theo.
 
 ---
 
-# 19. Final Instruction
+# Final Instruction
 
 Mục tiêu của Codex là:
 
-**Triển khai Sprint 2 đúng 100% theo ADR, SRS và TDS.**
+Triển khai Sprint-02 đúng 100% theo:
+
+- ADR
+- SRS
+- TDS
+- PR Specification
 
 Không tối ưu ngoài yêu cầu.
 
@@ -492,12 +626,12 @@ Không sáng tạo thêm chức năng.
 
 Không thay đổi kiến trúc.
 
-Khi hoàn thành từng module.
+Không thay đổi Database.
 
-Dừng.
+Không tự ý sửa tài liệu.
 
-Báo cáo.
+Nếu có bất kỳ điểm không rõ ràng nào.
 
-Chờ Review trước khi triển khai module tiếp theo.
+Phải dừng và báo cáo.
 
-Mọi Repository phải tuân thủ ADR-004_DatabaseSchema.md. Khi có mâu thuẫn giữa PR và Schema, ADR-004 được ưu tiên cho Database Contract.
+Không được suy đoán.
