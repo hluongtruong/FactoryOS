@@ -88,6 +88,28 @@ function createProjectFolder(projectId, projectName) {
 }
 
 /**
+ * Moves a project folder to trash for a failed project-creation rollback.
+ *
+ * @param {string} folderId Project folder ID.
+ * @return {boolean} True when the folder has been moved to trash.
+ * @throws {Error} When the folder ID is invalid, unavailable, or cannot be trashed.
+ */
+function deleteProjectFolder(folderId) {
+  return executeDriveOperation_('Project folder rollback', function () {
+    var folder = getFolder_(folderId, 'Project folder');
+    ensureFolderWithinRoot_(folder);
+
+    if (folder.isTrashed()) {
+      throw createDriveError_('Project folder not found.');
+    }
+
+    folder.setTrashed(true);
+    logDriveOperation_('project folder rollback success');
+    return true;
+  });
+}
+
+/**
  * Copies a Template Folder into a destination folder in the FactoryOS root
  * hierarchy.
  *
