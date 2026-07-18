@@ -7,14 +7,14 @@
 | Sprint | Sprint-02 |
 | Priority | Critical |
 | Status | Ready |
-| Depends On | PR-02, PR-03 |
+| Depends On | PR-02, PR-03, PR-04 |
 | Estimated Time | 4~6 hours |
 
 ---
 
 # 1. Objective
 
-Implement **ProjectRepository**, the data access layer responsible for all CRUD operations on the **PROJECT** sheet.
+Implement **ProjectRepository**, the centralized Data Access Layer responsible for all CRUD operations on the **PROJECT** sheet.
 
 ProjectRepository is the **only module** allowed to access the PROJECT sheet directly.
 
@@ -40,7 +40,9 @@ ProjectRepository
 Google Sheets
 ```
 
-The Repository layer abstracts all Spreadsheet operations and isolates the application from the database implementation.
+The Repository layer abstracts all Spreadsheet operations and isolates the application from the underlying database implementation.
+
+Repository must never contain business logic.
 
 ---
 
@@ -54,11 +56,20 @@ src/
 ProjectRepository.gs
 ```
 
-No UI implementation.
+This PR includes only:
 
-No business logic.
+- CRUD operations
+- Search
+- Spreadsheet access
+- Object mapping
 
-No validation.
+This PR does NOT include:
+
+- Validation
+- Workflow
+- ID generation
+- Drive operations
+- UI
 
 ---
 
@@ -66,20 +77,22 @@ No validation.
 
 ProjectRepository is responsible for:
 
-- Reading project records
-- Writing project records
-- Updating project records
-- Deleting project records (logical delete preferred)
-- Searching project records
-- Returning project objects
+- Reading Project records
+- Creating Project records
+- Updating Project records
+- Deleting Project records (logical delete preferred)
+- Searching Project records
+- Returning normalized Project objects
 
 ProjectRepository must NOT:
 
 - Validate business rules
 - Generate IDs
 - Create Drive folders
+- Copy templates
 - Access HTML
 - Format UI responses
+- Execute business workflows
 
 ---
 
@@ -91,20 +104,32 @@ Official Sheet
 PROJECT
 ```
 
-No other sheet shall be accessed.
+ProjectRepository shall access only the PROJECT sheet.
+
+No other sheet may be accessed.
 
 ---
 
 # 6. Database Contract
 
-The repository must assume the PROJECT sheet follows the frozen schema defined in:
+ProjectRepository shall comply with:
 
 ```
-ADR-003_Database_Frozen.md
+ADR-004_DatabaseSchema.md
 ```
 
-The repository must never:
+The PROJECT schema is frozen.
 
+Repository shall obtain:
+
+- Sheet name from `CONFIG.SHEETS.PROJECT`
+- Column names from `CONFIG.PROJECT_COLUMNS`
+
+Repository must never:
+
+- Hard-code sheet names
+- Hard-code column names
+- Rename sheets
 - Rename columns
 - Create columns
 - Delete columns
@@ -114,7 +139,7 @@ The repository must never:
 
 # 7. Required Public API
 
-Minimum required methods:
+Minimum required methods
 
 ```javascript
 findAll()
@@ -146,38 +171,71 @@ Additional helper methods may be implemented.
 
 # 8. Data Model
 
-Repository methods shall return a normalized Project object.
-
-Example:
+Repository methods shall return the Project object defined by ADR-004.
 
 ```javascript
 {
     projectId,
     projectName,
+    purpose,
+    priority,
     status,
     owner,
-    description,
-    startDate,
-    endDate,
+    nextAction,
+    deadline,
+    projectFolderId,
+    projectFolderUrl,
     createdAt,
     updatedAt
 }
 ```
 
-The object structure shall remain consistent across all methods.
+Repository shall NOT introduce additional fields.
+
+Examples NOT allowed:
+
+```
+description
+
+startDate
+
+endDate
+```
+
+The object structure must remain identical across all Repository methods.
 
 ---
 
-# 9. CRUD Responsibilities
+# 9. Config Contract
+
+ProjectRepository shall use the following configuration.
+
+```javascript
+CONFIG.SHEETS.PROJECT
+```
+
+```javascript
+CONFIG.PROJECT_COLUMNS
+```
+
+Repository must never access Spreadsheet headers using literal strings.
+
+All header resolution shall be performed through Config.
+
+---
+
+# 10. CRUD Responsibilities
 
 ## Create
 
-Insert a new row into PROJECT.
+Insert a new Project row.
 
 Repository assumes:
 
 - Project ID already exists.
 - Validation already completed.
+
+Repository simply writes data.
 
 ---
 
@@ -187,56 +245,62 @@ Support:
 
 - Find all
 - Find by ID
-- Find by status
-- Find by owner
+- Find by Name
+- Find by Status
+- Find by Owner
 - Search
 
 ---
 
 ## Update
 
-Update existing rows only.
+Update existing Project rows only.
 
-Repository shall not create missing records.
+Repository shall never create missing records.
 
 ---
 
 ## Delete
 
-Preferred implementation:
+Logical delete is preferred.
 
-Logical delete.
-
-Example:
+Example
 
 ```
 STATUS = DELETED
 ```
 
-Physical deletion should be avoided unless explicitly required.
+Physical deletion should be avoided unless explicitly required by a future ADR.
 
 ---
 
-# 10. Search Rules
+# 11. Search Rules
 
-Search should support:
+Search shall support:
 
-- Partial match
+- Partial matching
 - Case-insensitive comparison where practical
 - Multiple searchable fields
 
-Typical searchable fields:
+Minimum searchable fields:
 
-- Project ID
-- Project Name
-- Owner
-- Description
+- PROJECT_ID
+- PROJECT_NAME
+- PURPOSE
+- OWNER
+
+Business-specific search rules belong to ProjectService.
 
 ---
 
-# 11. Spreadsheet Access
+# 12. Spreadsheet Access
 
-Spreadsheet access shall remain private to the repository.
+Spreadsheet access shall remain private to ProjectRepository.
+
+ProjectRepository shall obtain:
+
+- Sheet via `CONFIG.SHEETS.PROJECT`
+- Header mapping via `CONFIG.PROJECT_COLUMNS`
 
 Only ProjectRepository may use:
 
@@ -244,25 +308,37 @@ Only ProjectRepository may use:
 SpreadsheetApp
 ```
 
-Higher layers must never interact with Sheets directly.
+Higher layers must never interact directly with Google Sheets.
 
 ---
 
-# 12. Error Handling
+# 13. Error Handling
 
 Throw descriptive exceptions when:
 
 - PROJECT sheet missing
-- Invalid column mapping
+- Invalid header mapping
 - Duplicate Project ID
-- Update target not found
-- Invalid data structure
+- Target Project not found
+- Invalid Project object
+
+Configuration errors
+
+```
+CFG001
+```
+
+Database errors
+
+```
+DB001
+```
 
 Silent failures are prohibited.
 
 ---
 
-# 13. Logging
+# 14. Logging
 
 Log significant operations:
 
@@ -272,46 +348,37 @@ Log significant operations:
 - Search
 - Read failures
 
-Sensitive project information must not be logged.
+Do NOT log:
+
+- Project Name
+- Folder URL
+- Sensitive business information
 
 ---
 
-# 14. Coding Rules
+# 15. Coding Rules
 
 ProjectRepository shall:
 
 - Be stateless
-- Avoid business logic
-- Avoid validation
-- Return predictable objects
+- Contain no business logic
+- Contain no validation
+- Return deterministic objects
 - Hide Spreadsheet implementation details
+- Reuse helper methods whenever practical
 
 ---
 
-# 15. Performance
+# 16. Performance
 
 Repository should:
 
-- Minimize Spreadsheet calls
+- Minimize Spreadsheet API calls
+- Cache header mapping during execution
 - Avoid unnecessary full-sheet scans
-- Reuse header mappings during execution
-- Keep operations efficient for future scaling
+- Keep implementation readable
 
-Performance optimization must not compromise readability.
-
----
-
-# 16. Constraints
-
-This PR must NOT:
-
-- Generate Project IDs
-- Create Drive folders
-- Validate projects
-- Call HTML
-- Access TASK sheet
-- Access SETTINGS directly
-- Implement business workflows
+Performance optimization must not reduce maintainability.
 
 ---
 
@@ -320,61 +387,89 @@ This PR must NOT:
 ProjectRepository may depend on:
 
 - Config.gs
-- SettingsService (if required for sheet configuration)
 - Utility modules
 
-ProjectRepository must not depend on:
+ProjectRepository must NOT depend on:
 
-- ProjectService
+- SettingsService
 - ValidationService
+- IdService
 - DriveService
+- ProjectService
 - HTML
 
 ---
 
-# 18. Acceptance Criteria
+# 18. Constraints
+
+This PR must NOT:
+
+- Generate Project IDs
+- Create Drive folders
+- Copy Template folders
+- Validate Projects
+- Execute workflows
+- Access TASK sheet
+- Access SETTINGS sheet
+- Modify Database schema
+
+---
+
+# 19. Acceptance Criteria
 
 The PR is accepted when:
 
 - ProjectRepository.gs exists.
 - CRUD operations are implemented.
 - Search operations function correctly.
-- Only the PROJECT sheet is accessed.
-- Repository contains no business logic.
-- Returned objects follow the standard model.
+- Only PROJECT sheet is accessed.
+- No business logic exists.
+- No validation exists.
+- Returned objects follow ADR-004.
+- Spreadsheet access is fully encapsulated.
 - Error handling is complete.
 
 ---
 
-# 19. Out of Scope
+# 20. Out of Scope
 
-This PR does not include:
+This PR does NOT include:
 
 - ProjectService
-- HTML pages
+- HTML
 - Drive integration
 - ID generation
-- Workflow management
-- Integration testing
+- Workflow
+- Integration tests
 
 ---
 
-# 20. Review Checklist
+# 21. Review Checklist
 
 Before approving verify:
 
-- [ ] Repository accesses only the PROJECT sheet.
-- [ ] CRUD operations are complete.
-- [ ] No validation logic exists.
-- [ ] No business rules exist.
-- [ ] No ID generation exists.
-- [ ] Returned object format is consistent.
-- [ ] Spreadsheet access is encapsulated.
-- [ ] Error handling is implemented.
-- [ ] Logging is appropriate.
+- [ ] Repository accesses only PROJECT sheet.
+- [ ] Sheet name comes from CONFIG.
+- [ ] Header mapping comes from CONFIG.
+- [ ] CRUD operations complete.
+- [ ] Search implemented.
+- [ ] No validation logic.
+- [ ] No business logic.
+- [ ] No ID generation.
+- [ ] No Drive operations.
+- [ ] Returned objects follow ADR-004.
+- [ ] Spreadsheet access fully encapsulated.
+- [ ] Error handling implemented.
 
 ---
 
 # Definition of Done
 
-This PR is complete when FactoryOS provides a centralized `ProjectRepository` that fully encapsulates all PROJECT sheet data access, exposes a clean CRUD API, returns consistent domain objects, and contains no business logic or user interface code.
+This PR is complete when FactoryOS provides a centralized **ProjectRepository** that:
+
+- encapsulates all PROJECT sheet access,
+- fully complies with ADR-004 Database Schema,
+- exposes a clean CRUD API,
+- returns a consistent Project object,
+- contains no business logic,
+- and serves as the single data access layer for Project information.
