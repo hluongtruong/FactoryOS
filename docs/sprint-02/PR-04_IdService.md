@@ -27,7 +27,7 @@ FactoryOS uses human-readable business IDs instead of UUIDs.
 Examples:
 
 ```
-PRJ-2026-0001
+PRJ-2026-001
 TSK-000123
 INB-000052
 KNW-000021
@@ -86,14 +86,14 @@ IdService must NOT:
 ## Project
 
 ```
-PRJ-YYYY-NNNN
+PRJ-YYYY-NNN
 ```
 
 Example
 
 ```
-PRJ-2026-0001
-PRJ-2026-0002
+PRJ-2026-001
+PRJ-2026-002
 ```
 
 ---
@@ -221,7 +221,7 @@ Project IDs include the current project year.
 Example
 
 ```
-PRJ-2026-0001
+PRJ-2026-001
 ```
 
 The year shall be obtained from SETTINGS.
