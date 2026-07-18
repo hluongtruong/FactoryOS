@@ -1,5 +1,32 @@
 /**
- * Purpose: Centralize configuration keys and database column mappings.
- * Dependencies: SETTINGS contract defined by ADR-003.
- * Functions: To be added in PR-02.
+ * Centralized constants for the frozen SETTINGS sheet contract.
+ *
+ * @const {Object}
  */
+var CONFIG = {
+  SHEET_NAMES: {
+    SETTINGS: 'SETTINGS'
+  },
+  SETTINGS_COLUMNS: {
+    KEY: 'KEY',
+    VALUE: 'VALUE',
+    DESCRIPTION: 'DESCRIPTION'
+  },
+  SETTINGS_KEYS: {
+    PROJECT_PREFIX: 'PROJECT_PREFIX',
+    PROJECT_CURRENT_YEAR: 'PROJECT_CURRENT_YEAR',
+    CURRENT_PROJECT_NO: 'CURRENT_PROJECT_NO',
+    TASK_PREFIX: 'TASK_PREFIX',
+    CURRENT_TASK_NO: 'CURRENT_TASK_NO',
+    INBOX_PREFIX: 'INBOX_PREFIX',
+    CURRENT_INBOX_NO: 'CURRENT_INBOX_NO',
+    KNOWLEDGE_PREFIX: 'KNOWLEDGE_PREFIX',
+    CURRENT_KNOWLEDGE_NO: 'CURRENT_KNOWLEDGE_NO',
+    DRIVE_ROOT_FOLDER_ID: 'DRIVE_ROOT_FOLDER_ID',
+    TEMPLATE_FOLDER_ID: 'TEMPLATE_FOLDER_ID',
+    TIME_ZONE: 'TIME_ZONE'
+  },
+  ERROR_CODES: {
+    CONFIGURATION: 'CFG001'
+  }
+};
