@@ -68,7 +68,7 @@ function findFolder(parentFolderId, folderName) {
  *
  * @param {string} projectId Project business ID.
  * @param {string} projectName Project name.
- * @return {string} Created project folder ID.
+ * @return {{folderId: string, folderUrl: string}} Created project folder details.
  * @throws {Error} When configuration is missing or the folder copy fails.
  */
 function createProjectFolder(projectId, projectName) {
@@ -83,7 +83,10 @@ function createProjectFolder(projectId, projectName) {
     var projectFolder = copyFolder_(templateFolder, rootFolder, folderName);
 
     logDriveOperation_('project folder created');
-    return projectFolder.getId();
+    return {
+      folderId: projectFolder.getId(),
+      folderUrl: projectFolder.getUrl()
+    };
   });
 }
 
