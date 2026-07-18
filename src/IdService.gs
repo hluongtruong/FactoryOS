@@ -38,6 +38,16 @@ var ID_TYPE_CONFIG = {
 var ID_SERVICE_LOCK_TIMEOUT_MS = 30000;
 
 /**
+ * Generates and persists the next Project ID through the established API.
+ *
+ * @return {string} Next Project ID in the configured PRJ-YYYY-NNN format.
+ * @throws {Error} When required configuration is invalid or unavailable.
+ */
+function generateProjectId() {
+  return nextProjectId();
+}
+
+/**
  * Generates and persists the next Project ID.
  *
  * @return {string} Next Project ID in the configured PRJ-YYYY-NNN format.
