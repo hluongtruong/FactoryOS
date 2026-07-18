@@ -1,12 +1,27 @@
 /**
- * Required PROJECT fields defined by PR-03.
+ * Required form-input fields defined by PR-03B.
  *
  * @const {Array<string>}
  */
-var PROJECT_REQUIRED_FIELDS = [
-  'PROJECT_ID',
-  'PROJECT_NAME',
-  'STATUS'
+var PROJECT_INPUT_REQUIRED_FIELDS = [
+  'projectName',
+  'purpose'
+];
+
+/**
+ * Required Project entity fields defined by ADR-004 and PR-03B.
+ *
+ * @const {Array<string>}
+ */
+var PROJECT_ENTITY_REQUIRED_FIELDS = [
+  'projectId',
+  'projectName',
+  'purpose',
+  'status',
+  'projectFolderId',
+  'projectFolderUrl',
+  'createdAt',
+  'updatedAt'
 ];
 
 /**
@@ -211,30 +226,40 @@ function validateMaxLength(value, length, fieldName) {
 }
 
 /**
- * Validates raw Project input using the established Project validator.
+ * Validates form-supplied Project input before generated fields exist.
  *
  * @param {Object} projectInput Project input to validate.
  * @return {{valid: boolean, errors: Array<string>}} Validation result.
  */
 function validateProjectInput(projectInput) {
-  return validateProject(projectInput);
+  return validateProjectFields_(projectInput, PROJECT_INPUT_REQUIRED_FIELDS);
 }
 
 /**
- * Validates the required fields of a project object defined by PR-03.
+ * Validates a complete Project entity according to the ADR-004 contract.
  *
- * @param {Object} data Project data to validate.
+ * @param {Object} project Project entity to validate.
  * @return {{valid: boolean, errors: Array<string>}} Validation result.
  */
-function validateProject(data) {
-  if (data === null || typeof data !== 'object' || Array.isArray(data)) {
+function validateProject(project) {
+  return validateProjectFields_(project, PROJECT_ENTITY_REQUIRED_FIELDS);
+}
+
+/**
+ * @param {Object} project Project data to validate.
+ * @param {Array<string>} requiredFields Required Project field names.
+ * @return {{valid: boolean, errors: Array<string>}} Validation result.
+ * @private
+ */
+function validateProjectFields_(project, requiredFields) {
+  if (project === null || typeof project !== 'object' || Array.isArray(project)) {
     return createInvalidResult_('Project data must be an object.');
   }
 
   var errors = [];
-  for (var index = 0; index < PROJECT_REQUIRED_FIELDS.length; index++) {
-    var fieldName = PROJECT_REQUIRED_FIELDS[index];
-    var validation = validateRequired(data[fieldName], fieldName);
+  for (var index = 0; index < requiredFields.length; index++) {
+    var fieldName = requiredFields[index];
+    var validation = validateRequired(project[fieldName], fieldName);
 
     if (!validation.valid) {
       errors.push(validation.errors[0]);
