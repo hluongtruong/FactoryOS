@@ -7,18 +7,18 @@
 | Sprint | Sprint-02 |
 | Priority | Critical |
 | Status | Ready |
-| Depends On | PR-02, PR-03, PR-04, PR-05, PR-06 |
+| Depends On | PR-02, PR-03, PR-04, PR-05, PR-05A, PR-06 |
 | Estimated Time | 6~8 hours |
 
 ---
 
 # 1. Objective
 
-Implement **ProjectService**, the Business Layer responsible for all Project-related workflows.
+Implement **ProjectService**, the Business Layer responsible for orchestrating all Project-related workflows.
 
-ProjectService orchestrates all lower-level services while ensuring business rules are applied consistently.
+ProjectService is the only layer that coordinates lower-level services while enforcing business rules.
 
-ProjectService is the **only module** that coordinates the complete Project creation process.
+ProjectService must not directly access SpreadsheetApp, DriveApp, or HTML.
 
 ---
 
@@ -27,7 +27,7 @@ ProjectService is the **only module** that coordinates the complete Project crea
 FactoryOS adopts a layered architecture.
 
 ```
-HTML
+UI
 
 ↓
 
@@ -36,8 +36,7 @@ ProjectService
 ├── ValidationService
 ├── IdService
 ├── DriveService
-├── ProjectRepository
-└── SettingsService
+└── ProjectRepository
 ```
 
 ProjectService contains business logic only.
@@ -49,16 +48,10 @@ ProjectService contains business logic only.
 Create
 
 ```
-src/
-
-ProjectService.gs
+src/ProjectService.gs
 ```
 
-No HTML implementation.
-
-No Spreadsheet implementation.
-
-No Google Drive implementation.
+Do not modify any existing Service or Repository.
 
 ---
 
@@ -66,35 +59,34 @@ No Google Drive implementation.
 
 ProjectService is responsible for:
 
-- Creating projects
-- Updating projects
-- Closing projects
-- Deleting projects
-- Searching projects
-- Retrieving project details
-- Coordinating services
-- Managing project workflow
+- Creating Projects
+- Updating Projects
+- Removing Projects
+- Retrieving Project Information
+- Searching Projects
+- Coordinating lower-level services
+- Executing business workflow
 
 ProjectService must NOT:
 
-- Access Spreadsheet directly
-- Access DriveApp directly
+- Access SpreadsheetApp
+- Access DriveApp
+- Access HTML
 - Generate IDs manually
-- Validate fields directly
+- Read or write Sheets directly
 
 ---
 
 # 5. Dependencies
 
-ProjectService shall use:
+ProjectService shall use only:
 
 - ValidationService
 - IdService
 - DriveService
 - ProjectRepository
-- SettingsService
 
-ProjectService must never bypass these services.
+No other module may be called.
 
 ---
 
@@ -107,296 +99,301 @@ Receive Request
 
 ↓
 
-Validate Input
+ValidationService.validateProjectInput()
 
 ↓
 
-Generate Project ID
+IdService.generateProjectId()
 
 ↓
 
-Create Project Folder
+DriveService.createProjectFolder(projectId, projectName)
 
 ↓
 
-Prepare Project Object
+Build Project Object
 
 ↓
 
-Save to Repository
+ProjectRepository.insert(project)
 
 ↓
 
 Return Result
 ```
 
-The workflow order shall remain unchanged.
+Notes
+
+- createProjectFolder() already copies the Template Folder.
+- ProjectService must NOT call copyTemplate().
 
 ---
 
-# 7. Required Public API
+# 7. Rollback Workflow
 
-Minimum public methods:
+If Repository.insert() fails after Folder creation:
+
+```
+DriveService.deleteProjectFolder(folderId)
+
+↓
+
+Throw Exception
+```
+
+Rules
+
+- Do not rollback Project ID.
+- Do not retry automatically.
+- Do not silently ignore rollback failure.
+
+---
+
+# 8. Public API
 
 ```javascript
-createProject(projectData)
+createProject(projectInput)
 
-updateProject(projectId, projectData)
+updateProject(project)
 
-deleteProject(projectId)
-
-closeProject(projectId)
-
-reopenProject(projectId)
+removeProject(projectId)
 
 getProject(projectId)
 
-getProjects()
-
 searchProjects(keyword)
 
-getProjectsByStatus(status)
+projectExists(projectId)
 
-getProjectsByOwner(owner)
+countProjects()
 ```
 
-Additional helper methods are permitted.
-
----
-
-# 8. Business Rules
-
-Project creation shall:
-
-- Validate required fields.
-- Generate a unique Project ID.
-- Create a dedicated Drive folder.
-- Persist project data.
-- Return the created Project.
-
-If any step fails, the operation must terminate with an error.
-
----
-
-# 9. Transaction Flow
-
-The sequence shall be:
+Use
 
 ```
-Validation
-
-↓
-
-ID Generation
-
-↓
-
-Drive Folder Creation
-
-↓
-
-Repository Insert
-
-↓
-
-Success
+removeProject()
 ```
 
-Repository insertion must occur only after successful validation and folder creation.
-
----
-
-# 10. Update Workflow
-
-Updating a project shall:
-
-- Validate incoming data.
-- Confirm project exists.
-- Update allowed fields only.
-- Preserve Project ID.
-- Preserve creation timestamp.
-
----
-
-# 11. Delete Workflow
-
-Preferred behavior:
-
-Logical deletion.
-
-Example:
+instead of
 
 ```
-STATUS = DELETED
+deleteProject()
 ```
 
-Physical deletion is outside the scope of this PR.
+to avoid Google Apps Script global namespace conflicts.
 
 ---
 
-# 12. Close Workflow
+# 9. Validation
 
-Closing a project shall:
+Validation must be delegated.
 
-- Verify project exists.
-- Verify current status allows closing.
-- Update project status.
-- Record updated timestamp.
-
-No Drive folders are deleted.
-
----
-
-# 13. Search Workflow
-
-ProjectService delegates searching to ProjectRepository.
-
-Supported searches:
-
-- Project ID
-- Project Name
-- Owner
-- Status
-- Keyword
-
-Business filtering may be applied after repository retrieval if required.
-
----
-
-# 14. Return Object
-
-Every public method shall return a consistent result.
-
-Example:
+Use only
 
 ```javascript
+ValidationService.validateProjectInput(projectInput)
+```
+
+ProjectService must not validate fields manually.
+
+---
+
+# 10. Project Object
+
+ProjectService builds the Project Object according to ADR-004.
+
+```
 {
-    success: true,
-    message: "Project created successfully.",
-    data: {
-        projectId: "...",
-        projectName: "...",
-        ...
-    }
+    projectId,
+    projectName,
+    purpose,
+    priority,
+    status,
+    owner,
+    nextAction,
+    deadline,
+    projectFolderId,
+    projectFolderUrl,
+    createdAt,
+    updatedAt
 }
 ```
 
-Failure example:
+No additional properties are allowed.
+
+---
+
+# 11. Repository Rules
+
+ProjectService may call only:
+
+```javascript
+ProjectRepository.findById()
+
+ProjectRepository.findByName()
+
+ProjectRepository.search()
+
+ProjectRepository.insert()
+
+ProjectRepository.update()
+
+ProjectRepository.deleteProject()
+
+ProjectRepository.exists()
+
+ProjectRepository.count()
+```
+
+ProjectService must never access SpreadsheetApp.
+
+---
+
+# 12. Drive Rules
+
+ProjectService may call only:
+
+```javascript
+DriveService.createProjectFolder()
+
+DriveService.deleteProjectFolder()
+```
+
+ProjectService must never use DriveApp directly.
+
+---
+
+# 13. Return Value
+
+Every public method shall return
+
+```javascript
+{
+    success: Boolean,
+    message: String,
+    data: Object
+}
+```
+
+Failure example
 
 ```javascript
 {
     success: false,
-    message: "Validation failed.",
+    message: "...",
     errors: [...]
 }
 ```
 
 ---
 
-# 15. Error Handling
+# 14. Error Handling
 
-ProjectService shall throw descriptive business exceptions for:
+Business errors include:
 
-- Validation failure
-- Duplicate project
-- Project not found
-- Drive creation failure
-- Repository failure
-- Invalid status transition
+- Validation Error
+- Duplicate Project
+- Project Not Found
+- Drive Failure
+- Repository Failure
 
-Unexpected system errors shall not be silently ignored.
-
----
-
-# 16. Logging
-
-Log major business events:
-
-- Project created
-- Project updated
-- Project closed
-- Project deleted
-- Validation failure
-- Repository failure
-- Drive failure
-
-Sensitive information must not be logged.
+ProjectService shall never swallow exceptions.
 
 ---
 
-# 17. Coding Rules
+# 15. Logging
+
+Allowed
+
+- Create Success
+- Create Failure
+- Update Success
+- Remove Success
+- Rollback Success
+- Rollback Failure
+
+Do NOT log
+
+- Folder URL
+- Project Content
+- Sensitive Information
+
+---
+
+# 16. Coding Rules
 
 ProjectService shall:
 
-- Contain business logic only.
-- Never manipulate Spreadsheet APIs.
-- Never manipulate DriveApp APIs.
-- Never contain HTML logic.
-- Be deterministic and reusable.
+- contain business logic only
+- be stateless
+- be deterministic
+- be reusable
+- use private helper methods when appropriate
 
 ---
 
-# 18. Constraints
+# 17. Constraints
 
-This PR must NOT:
+Must NOT
 
-- Access SpreadsheetApp directly.
-- Access DriveApp directly.
-- Implement HTML.
-- Implement Repository logic.
-- Implement Validation logic.
-- Generate IDs manually.
-- Hardcode configuration values.
+- access SpreadsheetApp
+- access DriveApp
+- modify Config
+- modify ValidationService
+- modify DriveService
+- modify IdService
+- modify Repository
+- hard-code configuration values
+
+If documentation conflicts are found, implementation shall stop and report the conflict.
 
 ---
 
-# 19. Acceptance Criteria
+# 18. Acceptance Criteria
 
 The PR is accepted when:
 
 - ProjectService.gs exists.
 - Project creation workflow is implemented.
-- Update workflow is implemented.
-- Delete workflow is implemented.
-- Search workflow is implemented.
-- All dependencies are invoked correctly.
-- No direct Spreadsheet access exists.
-- No direct Drive access exists.
+- Rollback is implemented.
+- Validation is delegated.
+- ID generation is delegated.
+- Folder creation is delegated.
+- Repository persistence is delegated.
+- No SpreadsheetApp access exists.
+- No DriveApp access exists.
 - Business logic is centralized.
 
 ---
 
-# 20. Out of Scope
+# 19. Out of Scope
 
 This PR does not include:
 
-- HTML pages
-- UI interaction
-- Integration testing
-- Notification system
-- Approval workflow
-- Task management
-- Knowledge management
+- HTML
+- UI
+- Notification
+- Approval Workflow
+- Task Management
+- Knowledge Management
 
 ---
 
-# 21. Review Checklist
+# 20. Review Checklist
 
-Before approving verify:
+Before approval verify:
 
-- [ ] ProjectService orchestrates all lower-level services.
-- [ ] Validation is delegated to ValidationService.
-- [ ] IDs are generated only through IdService.
-- [ ] Drive folders are created only through DriveService.
-- [ ] Data persistence occurs only through ProjectRepository.
-- [ ] No SpreadsheetApp calls exist.
-- [ ] No DriveApp calls exist.
-- [ ] Error handling is implemented.
-- [ ] Logging is appropriate.
-- [ ] Public API matches the specification.
+- [ ] Validation delegated to ValidationService
+- [ ] ID delegated to IdService
+- [ ] Folder creation delegated to DriveService
+- [ ] Rollback implemented
+- [ ] Repository used for persistence only
+- [ ] No SpreadsheetApp access
+- [ ] No DriveApp access
+- [ ] Business logic centralized
+- [ ] Public API matches specification
 
 ---
 
 # Definition of Done
 
-This PR is complete when FactoryOS provides a centralized **ProjectService** that orchestrates project-related business workflows using ValidationService, IdService, DriveService, and ProjectRepository, without directly accessing Google Sheets, Google Drive, or the user interface.
+FactoryOS provides a centralized ProjectService that orchestrates ValidationService, IdService, DriveService, and ProjectRepository, including rollback support, without directly accessing SpreadsheetApp, DriveApp, or the UI.
