@@ -1,0 +1,19 @@
+<div id="loadingOverlay" class="loading-overlay" hidden role="status" aria-live="polite">
+  <div class="loading-card"><span class="spinner" aria-hidden="true"></span><span id="loadingMessage">Loading...</span></div>
+</div>
+<div id="toast" class="toast" role="status" aria-live="polite" hidden></div>
+<dialog id="projectDetailDialog" class="dialog">
+  <div class="dialog-heading"><h2 id="projectDetailTitle">Project details</h2><button id="closeDetailButton" class="icon-button" type="button" aria-label="Close details">×</button></div>
+  <dl id="projectDetailFields" class="project-details"></dl>
+  <div class="dialog-actions">
+    <button id="editProjectButton" class="button button-secondary" type="button">Edit</button>
+    <button id="closeProjectButton" class="button button-secondary" type="button">Close</button>
+    <button id="deleteProjectButton" class="button button-danger" type="button">Delete</button>
+    <button id="backProjectButton" class="button button-secondary" type="button">Back</button>
+  </div>
+</dialog>
+<dialog id="confirmDialog" class="dialog confirm-dialog">
+  <h2 id="confirmTitle">Confirm action</h2>
+  <p id="confirmMessage"></p>
+  <div class="dialog-actions"><button id="confirmCancelButton" class="button button-secondary" type="button">Cancel</button><button id="confirmActionButton" class="button button-danger" type="button">Confirm</button></div>
+</dialog>

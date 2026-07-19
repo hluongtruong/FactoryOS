@@ -74,6 +74,10 @@ Style.html
 Script.html
 ```
 
+src/
+
+Code.gs (doGet only)
+
 No business logic shall be implemented inside HTML.
 
 ---
@@ -108,9 +112,6 @@ The UI must NOT:
 Displays:
 
 - Total Projects
-- Open Projects
-- Closed Projects
-- Recently Updated
 
 ---
 
@@ -169,11 +170,9 @@ Owner
 Purpose
 
 Deadline
-
-Status
 ```
 
-Project ID is generated automatically.
+Project ID is generated automatically. Status is assigned by ProjectService using CONFIG.DEFAULTS.PROJECT_STATUS.
 
 ---
 

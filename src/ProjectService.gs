@@ -46,6 +46,30 @@ function updateProject(project) {
 }
 
 /**
+ * Closes a Project by updating its configured terminal status.
+ *
+ * @param {string} projectId Project business ID.
+ * @return {{success: boolean, message: string, data: Object}} Service result.
+ * @throws {Error} When the Project does not exist or persistence fails.
+ */
+function closeProject(projectId) {
+  var project = findById(projectId);
+  if (project === null) {
+    throw new Error('DB001: Project not found.');
+  }
+
+  var closedStatus = getClosedProjectStatus_();
+  if (project.status === closedStatus) {
+    return createSuccessResult_('Project is already closed.', project);
+  }
+
+  project.status = closedStatus;
+  project.updatedAt = new Date();
+  var updatedProject = update(project);
+  logProjectServiceEvent_('close success');
+  return createSuccessResult_('Project closed successfully.', updatedProject);
+}
+/**
  * Logically removes a Project through the repository.
  *
  * @param {string} projectId Project business ID.
@@ -143,6 +167,20 @@ function getDefaultProjectStatus_() {
   return CONFIG.DEFAULTS.PROJECT_STATUS;
 }
 
+/**
+ * @return {string} Configured terminal status for closed Projects.
+ * @throws {Error} When the status configuration is missing.
+ * @private
+ */
+function getClosedProjectStatus_() {
+  if (typeof CONFIG === 'undefined' || !CONFIG.PROJECT_STATUSES ||
+      typeof CONFIG.PROJECT_STATUSES.CLOSED !== 'string' ||
+      CONFIG.PROJECT_STATUSES.CLOSED.trim() === '') {
+    throw new Error('CFG001: Closed Project status is missing.');
+  }
+
+  return CONFIG.PROJECT_STATUSES.CLOSED;
+}
 /**
  * @param {string} folderId Created Project folder ID.
  * @throws {Error} When rollback fails.

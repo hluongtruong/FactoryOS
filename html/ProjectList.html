@@ -1,0 +1,27 @@
+<section class="panel" aria-labelledby="projectListTitle">
+  <div class="panel-heading project-list-heading">
+    <div>
+      <p class="eyebrow">Overview</p>
+      <h2 id="projectListTitle">Project list</h2>
+    </div>
+    <div class="list-controls">
+      <label class="visually-hidden" for="projectSearch">Search projects</label>
+      <input id="projectSearch" type="search" placeholder="Search projects" autocomplete="off">
+      <label class="visually-hidden" for="statusFilter">Filter by status</label>
+      <select id="statusFilter"><option value="">All statuses</option></select>
+      <label class="visually-hidden" for="projectSort">Sort projects</label>
+      <select id="projectSort">
+        <option value="updatedAt-desc">Recently updated</option>
+        <option value="projectName-asc">Project name</option>
+        <option value="deadline-asc">Deadline</option>
+      </select>
+    </div>
+  </div>
+  <div class="table-wrapper">
+    <table>
+      <thead><tr><th>Project ID</th><th>Project Name</th><th>Status</th><th>Owner</th><th>Deadline</th><th>Updated At</th><th><span class="visually-hidden">Actions</span></th></tr></thead>
+      <tbody id="projectListBody"></tbody>
+    </table>
+  </div>
+  <p id="emptyProjects" class="empty-state" hidden>No projects found.</p>
+</section>

@@ -1,4 +1,14 @@
 /**
+ * Centralized Project status values.
+ *
+ * @const {Object}
+ */
+var PROJECT_STATUSES = {
+  OPEN: 'OPEN',
+  CLOSED: 'CLOSED'
+};
+
+/**
  * Centralized constants for the frozen SETTINGS sheet contract.
  *
  * @const {Object}
@@ -44,8 +54,9 @@ var CONFIG = {
     TEMPLATE_FOLDER_ID: 'TEMPLATE_FOLDER_ID',
     TIME_ZONE: 'TIME_ZONE'
   },
+  PROJECT_STATUSES: PROJECT_STATUSES,
   DEFAULTS: {
-    PROJECT_STATUS: 'OPEN'
+    PROJECT_STATUS: PROJECT_STATUSES.OPEN
   },
   ERROR_CODES: {
     CONFIGURATION: 'CFG001'

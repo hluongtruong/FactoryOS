@@ -1,5 +1,31 @@
-<!--
-Purpose: New Project form markup.
-Dependencies: Style.html, Script.html.
-Functions: To be added in PR-07.
--->
+<section id="projectFormSection" class="panel" hidden aria-labelledby="projectFormTitle">
+  <div class="panel-heading">
+    <div>
+      <p class="eyebrow">Project</p>
+      <h2 id="projectFormTitle">Create project</h2>
+    </div>
+    <button id="cancelProjectFormButton" class="button button-secondary" type="button">Cancel</button>
+  </div>
+
+  <form id="projectForm" novalidate>
+    <input id="projectId" name="projectId" type="hidden">
+    <div id="formErrors" class="form-errors" role="alert" hidden></div>
+    <div class="form-grid">
+      <label for="projectName">Project Name <span aria-hidden="true">*</span>
+        <input id="projectName" name="projectName" type="text" maxlength="100" required autocomplete="off">
+      </label>
+      <label for="owner">Owner
+        <input id="owner" name="owner" type="text" maxlength="100" autocomplete="off">
+      </label>
+      <label for="purpose" class="field-wide">Purpose <span aria-hidden="true">*</span>
+        <textarea id="purpose" name="purpose" rows="4" maxlength="500" required></textarea>
+      </label>
+      <label for="deadline">Deadline
+        <input id="deadline" name="deadline" type="date">
+      </label>
+    </div>
+    <div class="form-actions">
+      <button id="saveProjectButton" class="button button-primary" type="submit">Save project</button>
+    </div>
+  </form>
+</section>

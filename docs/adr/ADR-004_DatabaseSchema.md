@@ -103,6 +103,15 @@ Columns
 
 ---
 
+### Project Status
+
+Project status values are defined centrally in `CONFIG.PROJECT_STATUSES`.
+
+- `OPEN` is the initial status.
+- `CLOSED` is the terminal status set only through `ProjectService.closeProject()`.
+
+---
+
 # 4. Data Model
 
 Project Object

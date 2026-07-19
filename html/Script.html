@@ -1,5 +1,260 @@
-<!--
-Purpose: Client-side form submission and UI state behavior.
-Dependencies: ProjectForm.html, Code.gs API.
-Functions: To be added in PR-08.
--->
+<script>
+(function () {
+  'use strict';
+
+  var state = { projects: [], selectedProject: null, editProject: null };
+  var detailFields = [
+    ['Project ID', 'projectId'], ['Project Name', 'projectName'], ['Purpose', 'purpose'],
+    ['Priority', 'priority'], ['Status', 'status'], ['Owner', 'owner'],
+    ['Next Action', 'nextAction'], ['Deadline', 'deadline'], ['Folder ID', 'projectFolderId'],
+    ['Folder URL', 'projectFolderUrl'], ['Created At', 'createdAt'], ['Updated At', 'updatedAt']
+  ];
+
+  document.addEventListener('DOMContentLoaded', initialize);
+
+  function initialize() {
+    byId('openCreateButton').addEventListener('click', openCreateForm);
+    byId('cancelProjectFormButton').addEventListener('click', hideProjectForm);
+    byId('projectForm').addEventListener('submit', submitProjectForm);
+    byId('projectSearch').addEventListener('input', debounceSearch_);
+    byId('statusFilter').addEventListener('change', renderProjectList);
+    byId('projectSort').addEventListener('change', renderProjectList);
+    byId('projectListBody').addEventListener('click', handleListAction);
+    byId('closeDetailButton').addEventListener('click', closeDetail);
+    byId('backProjectButton').addEventListener('click', closeDetail);
+    byId('editProjectButton').addEventListener('click', openEditForm);
+    byId('closeProjectButton').addEventListener('click', confirmCloseProject);
+    byId('deleteProjectButton').addEventListener('click', confirmDeleteProject);
+    byId('confirmCancelButton').addEventListener('click', closeConfirmDialog);
+    loadDashboard();
+    loadProjects('');
+  }
+
+  function byId(id) { return document.getElementById(id); }
+
+  function loadDashboard() {
+    callServer('countProjects', null, function (result) {
+      if (result && result.success) {
+        byId('totalProjects').textContent = String(result.data);
+      }
+    }, showServerError);
+  }
+
+  function loadProjects(keyword) {
+    setLoading(true, keyword ? 'Searching...' : 'Loading...');
+    callServer('searchProjects', keyword, function (result) {
+      setLoading(false);
+      if (!result || !result.success) {
+        showResultError(result);
+        return;
+      }
+      state.projects = Array.isArray(result.data) ? result.data : [];
+      populateStatusFilter();
+      renderProjectList();
+    }, function (error) { setLoading(false); showServerError(error); });
+  }
+
+  var searchTimer;
+  function debounceSearch_() {
+    window.clearTimeout(searchTimer);
+    searchTimer = window.setTimeout(function () { loadProjects(byId('projectSearch').value.trim()); }, 250);
+  }
+
+  function populateStatusFilter() {
+    var filter = byId('statusFilter');
+    var selected = filter.value;
+    var statuses = {};
+    state.projects.forEach(function (project) { if (project.status) { statuses[project.status] = true; } });
+    filter.innerHTML = '';
+    addOption(filter, '', 'All statuses');
+    Object.keys(statuses).sort().forEach(function (status) { addOption(filter, status, status); });
+    filter.value = statuses[selected] || selected === '' ? selected : '';
+  }
+
+  function addOption(select, value, label) {
+    var option = document.createElement('option');
+    option.value = value;
+    option.textContent = label;
+    select.appendChild(option);
+  }
+
+  function renderProjectList() {
+    var filterValue = byId('statusFilter').value;
+    var projects = state.projects.filter(function (project) { return !filterValue || project.status === filterValue; });
+    projects.sort(compareProjects(byId('projectSort').value));
+    var body = byId('projectListBody');
+    body.innerHTML = '';
+    projects.forEach(function (project) { body.appendChild(createProjectRow(project)); });
+    byId('emptyProjects').hidden = projects.length !== 0;
+  }
+
+  function compareProjects(sortValue) {
+    var parts = sortValue.split('-');
+    return function (left, right) {
+      var first = displayValue(left[parts[0]]).toLowerCase();
+      var second = displayValue(right[parts[0]]).toLowerCase();
+      var comparison = first.localeCompare(second);
+      return parts[1] === 'desc' ? -comparison : comparison;
+    };
+  }
+
+  function createProjectRow(project) {
+    var row = document.createElement('tr');
+    ['projectId', 'projectName', 'status', 'owner'].forEach(function (field) { row.appendChild(createCell(displayValue(project[field]))); });
+    row.appendChild(createCell(formatDate(project.deadline)));
+    row.appendChild(createCell(formatDate(project.updatedAt)));
+    var actions = document.createElement('td');
+    var actionsWrap = document.createElement('div');
+    actionsWrap.className = 'row-actions';
+    actionsWrap.appendChild(createActionButton('View', 'view', project.projectId));
+    actionsWrap.appendChild(createActionButton('Edit', 'edit', project.projectId));
+    actions.appendChild(actionsWrap);
+    row.appendChild(actions);
+    return row;
+  }
+
+  function createCell(value) { var cell = document.createElement('td'); cell.textContent = value; return cell; }
+  function createActionButton(label, action, projectId) {
+    var button = document.createElement('button');
+    button.type = 'button'; button.className = 'button button-secondary'; button.textContent = label;
+    button.dataset.action = action; button.dataset.projectId = projectId;
+    return button;
+  }
+
+  function handleListAction(event) {
+    var button = event.target.closest('button[data-action]');
+    if (!button) { return; }
+    var project = findProject(button.dataset.projectId);
+    if (!project) { showToast('Project is no longer available.', true); return; }
+    if (button.dataset.action === 'view') { openDetail(project); } else { openEditFormFor(project); }
+  }
+
+  function findProject(projectId) { return state.projects.filter(function (project) { return project.projectId === projectId; })[0] || null; }
+
+  function openCreateForm() {
+    state.editProject = null;
+    byId('projectFormTitle').textContent = 'Create project';
+    byId('saveProjectButton').textContent = 'Save project';
+    byId('projectForm').reset();
+    clearFormErrors();
+    byId('projectFormSection').hidden = false;
+    byId('projectName').focus();
+  }
+
+  function openEditForm() { if (state.selectedProject) { closeDetail(); openEditFormFor(state.selectedProject); } }
+  function openEditFormFor(project) {
+    state.editProject = project;
+    byId('projectFormTitle').textContent = 'Edit project';
+    byId('saveProjectButton').textContent = 'Save changes';
+    byId('projectId').value = project.projectId;
+    byId('projectName').value = project.projectName || '';
+    byId('owner').value = project.owner || '';
+    byId('purpose').value = project.purpose || '';
+    byId('deadline').value = toDateInput(project.deadline);
+    clearFormErrors();
+    byId('projectFormSection').hidden = false;
+    byId('projectName').focus();
+  }
+
+  function hideProjectForm() { byId('projectFormSection').hidden = true; state.editProject = null; clearFormErrors(); }
+
+  function submitProjectForm(event) {
+    event.preventDefault();
+    var input = readFormInput();
+    var errors = validateForm(input);
+    if (errors.length) { showFormErrors(errors); return; }
+    setLoading(true, state.editProject ? 'Saving changes...' : 'Saving...');
+    if (state.editProject) {
+      var project = copyProject(state.editProject);
+      project.projectName = input.projectName; project.owner = input.owner; project.purpose = input.purpose;
+      project.deadline = input.deadline || null; project.updatedAt = new Date();
+      callServer('updateProject', project, handleProjectSave, handleSaveFailure);
+    } else {
+      callServer('createProject', input, handleProjectSave, handleSaveFailure);
+    }
+  }
+
+  function readFormInput() {
+    return { projectName: byId('projectName').value.trim(), owner: byId('owner').value.trim(), purpose: byId('purpose').value.trim(), deadline: byId('deadline').value || null };
+  }
+  function validateForm(input) {
+    var errors = [];
+    if (!input.projectName) { errors.push('Project Name is required.'); }
+    if (!input.purpose) { errors.push('Purpose is required.'); }
+    if (input.projectName.length > 100) { errors.push('Project Name must not exceed 100 characters.'); }
+    if (input.purpose.length > 500) { errors.push('Purpose must not exceed 500 characters.'); }
+    if (input.deadline && isNaN(new Date(input.deadline).getTime())) { errors.push('Deadline format is invalid.'); }
+    return errors;
+  }
+
+  function handleProjectSave(result) {
+    setLoading(false);
+    if (!result || !result.success) { showResultError(result); return; }
+    hideProjectForm(); showToast(result.message || 'Project saved successfully.'); loadDashboard(); loadProjects(byId('projectSearch').value.trim());
+  }
+  function handleSaveFailure(error) { setLoading(false); showServerError(error); }
+
+  function openDetail(project) {
+    state.selectedProject = project;
+    byId('projectDetailTitle').textContent = displayValue(project.projectName);
+    var fields = byId('projectDetailFields'); fields.innerHTML = '';
+    detailFields.forEach(function (definition) {
+      var term = document.createElement('dt'); term.textContent = definition[0];
+      var description = document.createElement('dd');
+      if (definition[1] === 'projectFolderUrl' && project.projectFolderUrl) {
+        var link = document.createElement('a'); link.href = project.projectFolderUrl; link.target = '_blank'; link.rel = 'noopener'; link.textContent = project.projectFolderUrl; description.appendChild(link);
+      } else if (definition[1] === 'deadline' || definition[1] === 'createdAt' || definition[1] === 'updatedAt') { description.textContent = formatDate(project[definition[1]]); }
+      else { description.textContent = displayValue(project[definition[1]]); }
+      fields.appendChild(term); fields.appendChild(description);
+    });
+    byId('projectDetailDialog').showModal();
+  }
+  function closeDetail() { byId('projectDetailDialog').close(); }
+
+  function confirmCloseProject() {
+    if (!state.selectedProject) { return; }
+    openConfirm('Close project', 'Close this project?', 'Close', function () {
+      setLoading(true, 'Closing...');
+      callServer('closeProject', state.selectedProject.projectId, function (result) {
+        setLoading(false); closeConfirmDialog(); closeDetail();
+        if (!result || !result.success) { showResultError(result); return; }
+        showToast(result.message || 'Project closed successfully.'); loadDashboard(); loadProjects(byId('projectSearch').value.trim());
+      }, handleSaveFailure);
+    });
+  }
+
+  function confirmDeleteProject() {
+    if (!state.selectedProject) { return; }
+    openConfirm('Delete project', 'Delete this project?', 'Delete', function () {
+      setLoading(true, 'Deleting...');
+      callServer('removeProject', state.selectedProject.projectId, function (result) {
+        setLoading(false); closeConfirmDialog(); closeDetail();
+        if (!result || !result.success) { showResultError(result); return; }
+        showToast(result.message || 'Project deleted successfully.'); loadDashboard(); loadProjects(byId('projectSearch').value.trim());
+      }, handleSaveFailure);
+    });
+  }
+
+  function openConfirm(title, message, actionLabel, onConfirm) {
+    byId('confirmTitle').textContent = title; byId('confirmMessage').textContent = message;
+    var confirmButton = byId('confirmActionButton'); confirmButton.textContent = actionLabel;
+    confirmButton.onclick = onConfirm; byId('confirmDialog').showModal(); confirmButton.focus();
+  }
+  function closeConfirmDialog() { byId('confirmDialog').close(); byId('confirmActionButton').onclick = null; }
+
+  function callServer(method, argument, success, failure) {
+    var runner = google.script.run.withSuccessHandler(success).withFailureHandler(failure);
+    if (argument === null) { runner[method](); } else { runner[method](argument); }
+  }
+  function setLoading(isLoading, message) { byId('loadingMessage').textContent = message || 'Loading...'; byId('loadingOverlay').hidden = !isLoading; document.querySelectorAll('button, input, textarea, select').forEach(function (element) { element.disabled = isLoading; }); }
+  function showServerError() { showToast('Unable to complete the request. Please try again.', true); }
+  function showResultError(result) { var errors = result && result.errors; if (errors && errors.length) { showFormErrors(errors); } else { showToast((result && result.message) || 'Unable to complete the request.', true); } }
+  function showFormErrors(errors) { var container = byId('formErrors'); var list = document.createElement('ul'); errors.forEach(function (error) { var item = document.createElement('li'); item.textContent = error; list.appendChild(item); }); container.innerHTML = ''; container.appendChild(list); container.hidden = false; }
+  function clearFormErrors() { var container = byId('formErrors'); container.innerHTML = ''; container.hidden = true; }
+  function showToast(message, isError) { var toast = byId('toast'); toast.textContent = message; toast.className = isError ? 'toast is-error' : 'toast'; toast.hidden = false; window.setTimeout(function () { toast.hidden = true; }, 4000); }
+  function displayValue(value) { return value === null || value === undefined || value === '' ? 'N/A' : String(value); }
+  function formatDate(value) { if (!value) { return 'N/A'; } var date = new Date(value); return isNaN(date.getTime()) ? displayValue(value) : date.toLocaleString(); }
+  function toDateInput(value) { if (!value) { return ''; } var date = new Date(value); return isNaN(date.getTime()) ? '' : date.toISOString().slice(0, 10); }
+  function copyProject(project) { var copy = {}; Object.keys(project).forEach(function (key) { copy[key] = project[key]; }); return copy; }
+}());
+</script>
