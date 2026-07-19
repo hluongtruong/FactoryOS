@@ -5,7 +5,8 @@
  */
 var PROJECT_INPUT_REQUIRED_FIELDS = [
   'projectName',
-  'purpose'
+  'purpose',
+  'priority'
 ];
 
 /**
@@ -17,6 +18,7 @@ var PROJECT_ENTITY_REQUIRED_FIELDS = [
   'projectId',
   'projectName',
   'purpose',
+  'priority',
   'status',
   'projectFolderId',
   'projectFolderUrl',

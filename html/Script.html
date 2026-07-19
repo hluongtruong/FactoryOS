@@ -149,6 +149,7 @@
     byId('projectId').value = project.projectId;
     byId('projectName').value = project.projectName || '';
     byId('owner').value = project.owner || '';
+    byId('priority').value = project.priority || '';
     byId('purpose').value = project.purpose || '';
     byId('deadline').value = toDateInput(project.deadline);
     clearFormErrors();
@@ -166,7 +167,7 @@
     setLoading(true, state.editProject ? 'Saving changes...' : 'Saving...');
     if (state.editProject) {
       var project = copyProject(state.editProject);
-      project.projectName = input.projectName; project.owner = input.owner; project.purpose = input.purpose;
+      project.projectName = input.projectName; project.owner = input.owner; project.purpose = input.purpose; project.priority = input.priority;
       project.deadline = input.deadline || null; project.updatedAt = new Date();
       callServer('updateProject', project, handleProjectSave, handleSaveFailure);
     } else {
@@ -175,12 +176,13 @@
   }
 
   function readFormInput() {
-    return { projectName: byId('projectName').value.trim(), owner: byId('owner').value.trim(), purpose: byId('purpose').value.trim(), deadline: byId('deadline').value || null };
+    return { projectName: byId('projectName').value.trim(), owner: byId('owner').value.trim(), priority: byId('priority').value.trim(), purpose: byId('purpose').value.trim(), deadline: byId('deadline').value || null };
   }
   function validateForm(input) {
     var errors = [];
     if (!input.projectName) { errors.push('Project Name is required.'); }
     if (!input.purpose) { errors.push('Purpose is required.'); }
+    if (!input.priority) { errors.push('Priority is required.'); }
     if (input.projectName.length > 100) { errors.push('Project Name must not exceed 100 characters.'); }
     if (input.purpose.length > 500) { errors.push('Purpose must not exceed 500 characters.'); }
     if (input.deadline && isNaN(new Date(input.deadline).getTime())) { errors.push('Deadline format is invalid.'); }
