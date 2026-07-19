@@ -127,9 +127,7 @@ Status
 
 Owner
 
-Start Date
-
-End Date
+Deadline
 
 Updated At
 
@@ -168,11 +166,9 @@ Project Name
 
 Owner
 
-Description
+Purpose
 
-Start Date
-
-End Date
+Deadline
 
 Status
 ```
